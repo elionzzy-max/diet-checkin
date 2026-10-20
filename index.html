@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3f7f2">
+<title>番茄20天</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: phone-app shell — two views (月历 / 打卡) switched by a fixed bottom tab bar */
+:root{
+  --bg:#f3f7f2; --surface:#ffffff; --ink:#1e2a22; --muted:#66756b; --line:#dbe5dc; --gray:#c4cdc6;
+  --green:#2f9a57; --green-soft:#dcf0e2; --red:#e5432f; --red-soft:#fde3dd;
+  --shadow:0 1px 2px rgba(30,60,40,.05),0 6px 20px rgba(30,60,40,.06);
+  --display:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121815; --surface:#1b2420; --ink:#e8efe9; --muted:#9aaba0; --line:#2c3a32; --gray:#4a5850;
+  --green:#5cc27f; --green-soft:#1d3426; --red:#ff6650; --red-soft:#3a201c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1b2420; --ink:#e8efe9; --muted:#9aaba0; --line:#2c3a32; --gray:#4a5850;
+  --green:#5cc27f; --green-soft:#1d3426; --red:#ff6650; --red-soft:#3a201c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:radial-gradient(140% 50% at 50% -12%,var(--green-soft),transparent 70%) no-repeat,var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px calc(96px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:520px;margin:0 auto}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.02em}
+.eyebrow{font-size:12px;color:var(--muted);letter-spacing:.12em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:16px}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-head{align-items:flex-end}
+.cal-head h1{font-size:30px;line-height:1.15;font-variant-numeric:tabular-nums}
+.nav{display:flex;gap:6px}
+.nav button{width:38px;height:38px;border-radius:50%;border:none;background:var(--surface);box-shadow:var(--shadow);font-size:20px;line-height:1}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.summary div{background:var(--surface);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+.summary div{display:flex;flex-direction:column;line-height:1.2}
+.summary b{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.summary span{font-size:12px;color:var(--muted)}
+.cal{background:var(--surface);border-radius:20px;padding:14px 10px;box-shadow:var(--shadow)}
+.wk,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wk span{text-align:center;font-size:12px;color:var(--muted);padding-bottom:6px}
+.dcell{aspect-ratio:1/1.1;max-width:100%;border:none;background:transparent;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.dcell .n{font-size:15px;font-variant-numeric:tabular-nums;line-height:1}
+.dcell.out{visibility:hidden}
+.dcell.future{cursor:default}
+.dcell.future .n{color:var(--muted);opacity:.6}
+.dcell.today .n{color:var(--bg);background:var(--ink);border-radius:99px;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.dcell.full{background:var(--green-soft)}
+.dots{display:flex;gap:3px;height:7px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none}
+.dot.g{background:var(--green)}.dot.r{background:var(--red)}.dot.x{background:var(--gray)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:5px}
+
+/* check-in */
+.ci-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.ci-head h1{font-size:30px;line-height:1.15}
+.ci-head .date{color:var(--muted);font-size:13px}
+.prog{font-size:13px;padding:4px 12px;border-radius:99px;background:var(--red-soft);color:var(--red);font-weight:500}
+.prog.done{background:var(--green-soft);color:var(--green)}
+.meal{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+.meal-top{display:flex;align-items:center;gap:10px;min-width:0}
+.meal-top .dot{width:10px;height:10px}
+.meal-top b{font-family:var(--display);font-size:18px;flex:none}
+.meal-top small{margin-left:auto;font-size:12px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meal-top small.ok{color:var(--green);font-weight:500}
+.meal.lunch .meal-top small.ok{color:var(--red)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opts.one{grid-template-columns:1fr}
+.opt{padding:13px;border-radius:14px;border:2px solid transparent;background:var(--bg);font-size:16px;font-weight:500;transition:transform .12s,background .15s,border-color .15s}
+.opt:active{transform:scale(.97)}
+.opt[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft)}
+.opt[aria-pressed="true"]::before{content:"✓ ";color:var(--green)}
+.lunch .opt[aria-pressed="true"]::before{color:var(--red)}
+.lunch .opt[aria-pressed="true"]{border-color:var(--red);background:var(--red-soft)}
+.other{display:flex;gap:8px}
+.other input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.other button{padding:0 16px;border-radius:10px;border:none;background:var(--ink);color:var(--bg);font-weight:500}
+.other button:disabled{opacity:.35;cursor:default}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.backtoday{align-self:flex-start;background:none;border:none;color:var(--muted);text-decoration:underline;padding:0;font-size:13px}
+
+/* tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tabbar .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr}
+.tab{background:none;border:none;padding:10px 0 12px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-size:12px}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:700}
+.tab[aria-selected="true"] svg{color:var(--green)}
+
+.tabbar{box-shadow:0 -4px 20px rgba(30,60,40,.05)}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;
+  background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:14px;font-family:var(--display);font-size:18px;transition:.3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+#fx{position:fixed;inset:0;pointer-events:none;width:100%;height:100%}
+.foot{margin-top:20px;font-size:12px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){.opt,.toast{transition:none}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section class="view" id="vCal" role="tabpanel" aria-labelledby="tCal">
+    <div class="cal-head">
+      <div><div class="eyebrow" id="monYear">2026</div><h1 id="monTitle">10月</h1></div>
+      <div class="nav"><button type="button" id="prev" aria-label="上个月">‹</button><button type="button" id="next" aria-label="下个月">›</button></div>
+    </div>
+    <div class="summary">
+      <div><b id="sFull">0</b><span>本月三餐全打卡（天）</span></div>
+      <div><b id="sStreak">0</b><span>连续全打卡（天）</span></div>
+      <div><b id="sGoal">0 / 20</b><span>20 天目标</span></div>
+    </div>
+    <div class="cal">
+      <div class="wk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+      <div class="days" id="days"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot g"></i>早餐 / 晚餐已打卡</span>
+      <span><i class="dot r"></i>午餐已打卡</span>
+      <span><i class="dot x"></i>这一餐没打卡</span>
+    </div>
+  </section>
+
+  <section class="view" id="vIn" role="tabpanel" aria-labelledby="tIn" hidden></section>
+  <p class="foot" id="saveState">记录保存在这台设备上</p>
+</div>
+
+<nav class="tabbar"><div class="in" role="tablist">
+  <button type="button" class="tab" role="tab" id="tCal" aria-selected="true" data-v="cal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>月历</button>
+  <button type="button" class="tab" role="tab" id="tIn" aria-selected="false" data-v="in">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>打卡</button>
+</div></nav>
+<canvas id="fx"></canvas>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const MEALS=[{k:"b",name:"早餐",color:"g",opts:["果蔬汁","其他"]},{k:"l",name:"午餐",color:"r",opts:["其他"]},{k:"d",name:"晚餐",color:"g",opts:["果蔬汁","其他"]}];
+const pad=n=>String(n).padStart(2,"0");
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(k,n)=>{const d=parse(k);d.setDate(d.getDate()+n);return key(d)};
+const todayKey=()=>key(new Date());
+const WK="日一二三四五六";
+
+let state={start:todayKey(),days:{}};
+let view="cal", sel=todayKey(), ym=(()=>{const d=new Date();return[d.getFullYear(),d.getMonth()]})();
+let ref=null, saveTimer=null, drafts={};
+
+function lsGet(){try{return JSON.parse(localStorage.getItem("meals20")||"null")}catch(e){return null}}
+function lsSet(){try{localStorage.setItem("meals20",JSON.stringify(state))}catch(e){}}
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const meal=(k,m)=>(state.days[k]||{})[m]||null;          // {t:"果蔬汁"|"其他", note}
+const checked=(k,m)=>{const x=meal(k,m);return !!(x&&x.t)};
+const count=k=>MEALS.filter(m=>checked(k,m.k)).length;
+const full=k=>count(k)===3;
+
+function streak(){const t=todayKey();let k=full(t)?t:addDays(t,-1),n=0;while(full(k)){n++;k=addDays(k,-1)}return n}
+
+function dotsHTML(k){
+  if(!count(k))return `<span class="dots"></span>`;
+  return `<span class="dots">${MEALS.map(m=>`<i class="dot ${checked(k,m.k)?m.color:"x"}"></i>`).join("")}</span>`;
+}
+
+function renderCal(){
+  const [y,m]=ym,t=todayKey();
+  document.getElementById("monTitle").textContent=`${m+1}月`;
+  document.getElementById("monYear").textContent=`${y} · 减肥打卡`;
+  const first=new Date(y,m,1),lead=(first.getDay()+6)%7,len=new Date(y,m+1,0).getDate();
+  let h="";
+  for(let i=0;i<lead;i++)h+=`<span class="dcell out"></span>`;
+  for(let d=1;d<=len;d++){
+    const k=key(new Date(y,m,d)),fut=k>t,c=count(k);
+    const cls=["dcell",fut?"future":"",k===t?"today":"",c===3?"full":""].join(" ");
+    h+=`<button type="button" class="${cls}" data-k="${k}" ${fut?"disabled":""} aria-label="${m+1}月${d}日，已打卡${c}餐"><span class="n">${d}</span>${dotsHTML(k)}</button>`;
+  }
+  const el=document.getElementById("days");el.innerHTML=h;
+  el.querySelectorAll("button.dcell").forEach(b=>b.onclick=()=>{sel=b.dataset.k;drafts={};setView("in")});
+  let n=0;for(let i=0;i<20;i++)if(full(addDays(state.start,i)))n++;
+  const mf=Array.from({length:len},(_,i)=>key(new Date(y,m,i+1))).filter(full).length;
+  document.getElementById("sFull").textContent=mf;
+  document.getElementById("sStreak").textContent=streak();
+  document.getElementById("sGoal").textContent=`${n} / 20`;
+}
+document.getElementById("prev").onclick=()=>{const[y,m]=ym;ym=m?[y,m-1]:[y-1,11];renderCal()};
+document.getElementById("next").onclick=()=>{const[y,m]=ym;ym=m<11?[y,m+1]:[y+1,0];renderCal()};
+
+function renderIn(){
+  const d=parse(sel),c=count(sel),isToday=sel===todayKey();
+  const el=document.getElementById("vIn");
+  el.innerHTML=`
+    <div class="ci-head"><div><div class="eyebrow">${d.getMonth()+1}月${d.getDate()}日 · 周${WK[d.getDay()]}</div><h1>${isToday?"今天":`${d.getMonth()+1}月${d.getDate()}日`}吃了什么</h1></div>
+      <span class="prog ${c===3?"done":""}">${c===3?"三餐都打卡了":`已打卡 ${c} / 3`}</span></div>
+    ${isToday?"":`<button type="button" class="backtoday" id="backToday">回到今天</button>`}
+    ${MEALS.map(m=>{
+      const x=meal(sel,m.k),drafting=drafts[m.k]!==undefined,open=drafting||(x&&x.t==="其他");
+      const val=drafting?drafts[m.k]:(x&&x.note)||"";
+      const label=x?"已打卡"+(x.t==="其他"?"："+esc(x.note):"：果蔬汁"):"未打卡";
+      return `<div class="meal ${m.k==="l"?"lunch":""}">
+        <div class="meal-top"><i class="dot ${x?m.color:"x"}"></i><b>${m.name}</b><small class="${x?"ok":""}">${label}</small></div>
+        <div class="opts ${m.opts.length===1?"one":""}">${m.opts.map(o=>`<button type="button" class="opt" data-m="${m.k}" data-o="${o}" aria-pressed="${!!((x&&x.t===o)||(o==="其他"&&drafting))}">${o}</button>`).join("")}</div>
+        ${open?`<div class="other"><input type="text" id="in-${m.k}" maxlength="60" placeholder="写下吃了什么，比如：鸡胸肉沙拉" value="${esc(val)}"><button type="button" data-save="${m.k}" ${val.trim()?"":"disabled"}>${x&&x.t==="其他"&&!drafting?"修改":"打卡"}</button></div>`:""}
+      </div>`}).join("")}
+    <p class="hint">再点一次已选的选项，可以取消这一餐的打卡。</p>`;
+  const bt=document.getElementById("backToday");if(bt)bt.onclick=()=>{sel=todayKey();drafts={};renderIn()};
+  el.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const m=b.dataset.m,o=b.dataset.o,x=meal(sel,m);
+    if(o==="果蔬汁"){ delete drafts[m]; setMeal(m,x&&x.t==="果蔬汁"?null:{t:"果蔬汁"}) }
+    else if((x&&x.t==="其他")||drafts[m]!==undefined){ delete drafts[m]; setMeal(m,null) }
+    else { drafts[m]=""; if(x)setMeal(m,null); else renderIn(); const i=document.getElementById("in-"+m); if(i)i.focus() }
+  });
+  el.querySelectorAll(".other input").forEach(i=>{
+    const m=i.id.slice(3),btn=el.querySelector(`[data-save="${m}"]`);
+    i.oninput=()=>{drafts[m]=i.value;btn.disabled=!i.value.trim()};
+    i.onkeydown=e=>{if(e.key==="Enter"&&i.value.trim())btn.click()};
+  });
+  el.querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>{
+    const m=b.dataset.save,v=document.getElementById("in-"+m).value.trim();if(!v)return;
+    delete drafts[m];setMeal(m,{t:"其他",note:v});
+  });
+}
+
+function setMeal(m,v){
+  const before=full(sel);
+  const day=state.days[sel]||(state.days[sel]={});
+  if(v)day[m]=v;else delete day[m];
+  if(!Object.keys(day).length)delete state.days[sel];
+  save();renderIn();
+  if(!before&&full(sel))celebrate();
+}
+
+function setView(v){
+  view=v;
+  document.getElementById("vCal").hidden=v!=="cal";
+  document.getElementById("vIn").hidden=v!=="in";
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===v));
+  if(v==="cal"){const d=parse(sel);ym=[d.getFullYear(),d.getMonth()];renderCal()}else renderIn();
+  scrollTo(0,0);
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{if(t.dataset.v==="in"&&view!=="in"){sel=todayKey();drafts={}}setView(t.dataset.v)});
+
+function save(){
+  lsSet();clearTimeout(saveTimer);if(!ref)return;
+  const s=document.getElementById("saveState");s.textContent="保存中…";
+  saveTimer=setTimeout(async()=>{
+    try{await ref.set(JSON.parse(JSON.stringify(state)));s.textContent="已保存到你的账号，换设备也能看到"}
+    catch(e){s.textContent="没能保存到账号，已先存在这台设备上"}
+  },400);
+}
+
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
+function celebrate(){
+  const s=streak();toast(s>1?`🍅 三餐全打卡！已连续 ${s} 天`:"🍅 三餐全打卡！");
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const c=document.getElementById("fx"),x=c.getContext("2d"),W=c.width=innerWidth,H=c.height=innerHeight;
+  const cs=getComputedStyle(document.documentElement),cols=[cs.getPropertyValue("--red"),cs.getPropertyValue("--green")];
+  const ps=Array.from({length:70},()=>({x:W/2,y:H*.45,vx:(Math.random()-.5)*12,vy:-Math.random()*12-4,r:Math.random()*6+4,c:cols[Math.random()<.5?0:1]}));
+  let f=0;(function step(){x.clearRect(0,0,W,H);ps.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;x.fillStyle=p.c;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()});
+    if(++f<90)requestAnimationFrame(step);else x.clearRect(0,0,W,H)})();
+}
+
+function rerender(){view==="cal"?renderCal():renderIn()}
+
+// boot
+const cached=lsGet();if(cached&&cached.days)state=cached;
+setView("cal");
+
+(async()=>{
+  const s=document.getElementById("saveState");
+  try{
+    if(!window.claude||!claude.use)return;
+    const [d,u]=await Promise.all([claude.use("db"),claude.use("user")]);
+    const uid=u?await u.id():null;
+    if(!d||!uid)return;
+    ref=d.collection("data/users/"+uid).doc("meals");
+    const snap=await ref.get();
+    if(snap.exists){const v=snap.data();if(v&&v.days){state=JSON.parse(JSON.stringify(v));lsSet();rerender()}}
+    else if(Object.keys(state.days).length)save();
+    s.textContent="记录保存在你的账号里，换设备也能看到";
+  }catch(e){}
+})();
+
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!document.querySelector(".other input:focus"))rerender()});
+</script>
+</body>
+</html>
